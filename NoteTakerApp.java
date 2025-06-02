@@ -106,7 +106,8 @@ public class NoteTakerApp extends JFrame {
 
         editorFrame.setVisible(true);
     }
-private void saveNote() {
+
+    private void saveNote() {
         String noteContent = noteTextArea.getText();
 
         if (noteContent.trim().isEmpty()) {
@@ -117,19 +118,32 @@ private void saveNote() {
         }
 
         // Generate Title using Gemini API!!!!!!!
-        String noteTitle = "untitled_note"; // Default title in case API call fails
-        try {
-            noteTitle = generateTitleWithGemini(noteContent);
-            if (noteTitle.isEmpty()) { // Fallback if sanitization makes it empty
-                noteTitle = "note_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String noteTitle = "untitled_note"; // Default title in case API call 
+        
+        if (currentFile != null) {
+            // If editing an existing note, use its current name (without .txt extension)
+            String existingFileName = currentFile.getName();
+            int dotIndex = existingFileName.lastIndexOf('.');
+            if (dotIndex > 0 && dotIndex < existingFileName.length() - 1) {
+                noteTitle = existingFileName.substring(0, dotIndex);
+            } else {
+                noteTitle = existingFileName; // No extension found, use full name
             }
-        } catch (IOException | InterruptedException ex) {
-            System.err.println("Error generating title with Gemini: " + ex.getMessage());
-            JOptionPane.showMessageDialog(noteTextArea.getTopLevelAncestor(),
-                    "Could not generate title. Saving with a default name.\nError: " + ex.getMessage(),
-                    "Title Generation Failed", JOptionPane.WARNING_MESSAGE);
+            System.out.println("DEBUG: Editing existing note. Using current filename as title: " + noteTitle);
+        } else {
+            // If it's a new note, generate title using Gemini API
+            try {
+                noteTitle = generateTitleWithGemini(noteContent);
+                if (noteTitle.isEmpty()) { // Fallback if sanitization makes it empty
+                    noteTitle = "note_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+                }
+            } catch (IOException | InterruptedException ex) {
+                System.err.println("Error generating title with Gemini: " + ex.getMessage());
+                JOptionPane.showMessageDialog(noteTextArea.getTopLevelAncestor(),
+                        "Could not generate title. Saving with a default name.\nError: " + ex.getMessage(),
+                        "Title Generation Failed", JOptionPane.WARNING_MESSAGE);
+            }
         }
-
 
         try {
             // Ensure the notes directory exists
@@ -137,19 +151,25 @@ private void saveNote() {
             if (!notesDir.exists()) {
                 notesDir.mkdirs();
             }
-
-            // Use the generated title for the filename
-            String fileName = noteTitle + ".txt";
-            File fileToSave = new File(notesDir, fileName);
-
-            // Add a counter to the filename if a file with the same name already exists
-            int counter = 1;
-            while (fileToSave.exists()) {
-                fileName = noteTitle + "_" + counter + ".txt";
-                fileToSave = new File(notesDir, fileName);
-                counter++;
+            
+            File fileToSave;
+            if (currentFile != null) {
+                fileToSave = currentFile;
             }
+            else {
+                // Use the generated title for the filename
+                String fileName = noteTitle + ".txt";
+                fileToSave = new File(notesDir, fileName);
 
+                // Add a counter to the filename if a file with the same name already exists
+                int counter = 1;
+                while (fileToSave.exists()) {
+                    fileName = noteTitle + "_" + counter + ".txt";
+                    fileToSave = new File(notesDir, fileName);
+                    counter++;
+                }
+            }
+            
             // Write the note content to the file
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
                 writer.write(noteContent);
