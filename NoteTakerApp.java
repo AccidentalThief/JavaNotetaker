@@ -5,11 +5,16 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class NoteTakerApp extends JFrame {
 
     private JTextArea noteTextArea;
     private File currentFile;
+
+    // Define the local directory for notes
+    private static final String NOTES_DIRECTORY = "my_notes";
 
     public NoteTakerApp() {
         setTitle("Java Note Taker");
@@ -27,7 +32,8 @@ public class NoteTakerApp extends JFrame {
         JButton editExistingNoteButton = new JButton("Edit Existing Note");
         editExistingNoteButton.setFont(new Font("SansSerif", Font.BOLD, 16));
         editExistingNoteButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
+            // Start the file chooser in the designated notes directory
+            JFileChooser fileChooser = new JFileChooser(NOTES_DIRECTORY);
             fileChooser.setDialogTitle("Select Note to Edit");
 
             int userSelection = fileChooser.showOpenDialog(NoteTakerApp.this);
@@ -98,37 +104,36 @@ public class NoteTakerApp extends JFrame {
 
     private void saveNote() {
         String noteContent = noteTextArea.getText();
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Note As");
 
-        if (currentFile != null) {
-            fileChooser.setSelectedFile(currentFile);
-        } else {
-            fileChooser.setSelectedFile(new File("untitled_note.txt"));
-        }
-
-        int userSelection = fileChooser.showSaveDialog(noteTextArea.getTopLevelAncestor());
-
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
-
-            if (!fileToSave.getName().toLowerCase().endsWith(".txt")) {
-                fileToSave = new File(fileToSave.getAbsolutePath() + ".txt");
+        try {
+            // Ensure the notes directory exists
+            File notesDir = new File(NOTES_DIRECTORY);
+            if (!notesDir.exists()) {
+                notesDir.mkdirs(); // Create the directory and any necessary parent directories
             }
 
+            // Generate a unique filename based on timestamp
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
+            String timestamp = dateFormat.format(new Date());
+            String fileName = "note_" + timestamp + ".txt";
+            File fileToSave = new File(notesDir, fileName);
+
+            // Write the note content to the file
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
                 writer.write(noteContent);
-                currentFile = fileToSave;
                 JOptionPane.showMessageDialog(noteTextArea.getTopLevelAncestor(),
                         "Note saved successfully to: " + fileToSave.getAbsolutePath(),
                         "Save Success", JOptionPane.INFORMATION_MESSAGE);
-                ((JFrame) noteTextArea.getTopLevelAncestor()).setTitle("Note Editor - " + fileToSave.getName());
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(noteTextArea.getTopLevelAncestor(),
-                        "Error saving note: " + ex.getMessage(),
-                        "Save Error", JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace();
+                JFrame editorFrame = (JFrame) noteTextArea.getTopLevelAncestor();
+                if (editorFrame != null) {
+                    editorFrame.dispose(); // Close the editor window
+                }
             }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(noteTextArea.getTopLevelAncestor(),
+                    "Error saving note: " + ex.getMessage(),
+                    "Save Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
 
