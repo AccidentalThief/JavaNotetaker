@@ -18,7 +18,7 @@ public class NoteTakerApp extends JFrame {
 
     // Define the local directory for notes
     private static final String NOTES_DIRECTORY = "my_notes";
-    private static final String GEMINI_API_KEY = "MY_API_KEY";
+    private static final String GEMINI_API_KEY = System.getenv("GEMINI_API_KEY");
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
 
     public NoteTakerApp() {
@@ -203,7 +203,7 @@ public class NoteTakerApp extends JFrame {
         connection.setRequestProperty("Content-Type", "application/json");
         connection.setDoOutput(true);
 
-        String jsonInputString = "{\"contents\": [{\"parts\": [{\"text\": \"Your task is to create a title for these notes, following the word-word format. This means the title should consist of two words separated by a hyphen. For example, a grocery list might be grocery-list, while someone's dream journal might be dream-journal. Generate a title that accurately reflects the content of the notes. Notes: "
+        String jsonInputString = "{\"contents\": [{\"parts\": [{\"text\": \"Your task is to create a title for these notes, following the word-word format. This means the title should consist of two words separated by a hyphen. For example, a grocery list might be grocery-list, while someone's dream journal might be dream-journal. Generate a title that accurately reflects the content of the notes. Only respond with the title of the notes. Notes: "
                                + escapeJson(content) + "\"}]}]}";
 
         System.out.println("DEBUG: Sending JSON to Gemini API: " + jsonInputString);
